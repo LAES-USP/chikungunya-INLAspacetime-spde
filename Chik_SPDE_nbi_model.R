@@ -29,13 +29,13 @@ library(ggsn)            # extra map tools
 
 # ---- 2. Load and Prepare Data ------------------------------------------------
 
-# Load pre-processed dataset
-# data <- read_delim("data/df_ChiK.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
-
 # The dataset 'data' should contain chikungunya incidence and covariates
 # Variables include: time (month), space (municipality), Tmin, mobility index, etc.
 # Dataset and dictionary available at [**Figshare (link to be inserted)**]
+# Please download the dataset from Figshare and place it in the data/ folder before 
+# running the script.
 
+data <- read_delim("data/df_ChiK.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 # ---- 2.1 Load Shapefile of Brazilian Municipalities --------------------------
 
@@ -59,11 +59,8 @@ BR.df <- BR.df[order(BR.df$COD_MUN6, decreasing = FALSE), ]
 
 # Create spatial IDs for model indexing
 BR.df$ID.space.1 <- seq(1, N)
-shp.df <- data.frame(
-  my.ID = 1:N,                   # internal sequential ID
-  ID.space.1 = BR.df$ID.space.1, # spatial index for SPDE
-  ID_MN_RESI = as.numeric(BR.df$COD_MUN6) # numeric municipality code
-)
+shp.df <- as.data.frame(cbind(my.ID=1:N, ID.space.1=BR.df$ID.space.1, ID_MN_RESI=BR.df$COD_MUN6))
+shp.df$ID_MN_RESI <- as.numeric(shp.df$ID_MN_RESI)
 
 # ---- 2.3 Merge Spatial Identifiers with Main Data ----------------------------
 
@@ -98,9 +95,6 @@ coords.cv <- data.frame(unique(st_coordinates(df)))
 # ---- 3. Mesh Construction ----------------------------------------------------
 # Create SPDE mesh using the actual study border
 
-
-# ---- 3.1 Load and Transform Border -------------------------------------------
-
 # Load border shapefile (projected CRS: Albers South America)
 border <- read_sf("data/borda_102033.shp")
 
@@ -109,8 +103,6 @@ border <- st_transform(border, crs = albers_km)
 
 # Remove unnecessary columns (e.g., FID)
 border <- border[, !(names(border) %in% c("FID"))]
-
-# ---- 3.2 Build Mesh ----------------------------------------------------------
 
 # Create a spatial mesh with small scale
 smesh <- inla.mesh.2d(
@@ -123,9 +115,6 @@ smesh <- inla.mesh.2d(
 
 # Check mesh summary and manifold structure
 print(fm_manifold(smesh, c("S", "R")))
-
-
-# ---- 3.3 Visualize Mesh ------------------------------------------------------
 
 # Number of mesh vertices
 smesh$n
@@ -151,10 +140,9 @@ ggsave(
   units = "in"
 )
 
-
 # ---- 4. Prepare Climate and Covariates for Modeling -------------------------
 
-# ---- 4.1 Create Non-linear Climate Groups -----------------------------------
+# ---- 4.1 Create Non-linear Climate Groups ----------------------------------
 
 # Group continuous climate variables using quantiles
 df$Tmin.grp  <- inla.group(df$Tmin, n = 25, method = "quantile")        # minimum temperature
@@ -191,9 +179,6 @@ dataf <- data.frame(
 
 # Remove geometry column if present
 dataf <- dataf[, !(names(dataf) %in% c("geometry"))]
-
-
-# ---- 4.4 Inspect Data -------------------------------------------------------
 
 # Quick summary including missing values
 summary(dataf, useNA = "always")
@@ -272,8 +257,15 @@ fit121 <- bru(
   )
 )
 
+#Full model (not uploaded due to file size)
 #save(fit121, file = "data/Results_models_chik.Rdata")
-load("data/Results_models_chik.Rdata")
+
+#To make it accessible on GitHub, the model was split and reduced into two files:
+load("data/fit121_reduced.RData")
+load("data/fit121_reduced_map.RData")
+
+fit121 <- fit121_reduced
+fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
 
 # ---- 9. Summarize Model Results --------------------------------------------
 # Summary of posterior marginal distributions for the fixed effects
@@ -282,19 +274,19 @@ summary(fit121)
 # Compute model fit statistics: WAIC, DIC, and mean CPO
 round(c(fit121$waic$waic, fit121$dic$dic, -mean(log(fit121$cpo$cpo), na.rm=T)), 3)
 
-# ---- 10. Posterior Distributions of Hyperparameters ------------------------
+# Posterior Distributions of Hyperparameters 
 # Avoid scientific notation for easier reading
 options(scipen = 999)
 
 # Posterior summaries for hyperparameters (e.g., spatial/temporal variance)
 round(fit121$summary.hyperpar, 2)
 
-# ---- 11. Posterior Summaries of Fixed Effects ------------------------------
+# Posterior Summaries of Fixed Effects 
 # Columns: mean, sd, 0.025 quantile, 0.975 quantile
 round(cbind(fit121$summary.fixed[, c(1, 2, 3, 5)]), 3)
 
-# ---- 12. Prepare Table for Plot --------------------------------------------
-# ---- 12.1 Fixed effects table -----------------------------------------------
+# ---- 10. Prepare Table for Plot --------------------------------------------
+# Fixed effects table 
 a <- data.frame(FixedEffects(fit121), fix.empty.names = FALSE)
 
 var <- data.frame(
@@ -307,7 +299,7 @@ var <- data.frame(
 )  %>% rename("0.025quant" = X0.025quant, "0.975quant" = X0.975quant)
 
 
-# ---- 12.2 Elevation ---------------------------------------------------------
+# Elevation 
 Elevation <- cbind(
   fit121$summary.random$Alt$ID, 
   round(exp(fit121$summary.random$Alt[, c("mean", "0.025quant", "0.975quant")]), 2)
@@ -319,7 +311,7 @@ Elevation <- rbind(linha, Elevation)
 Elevation$type <- c("Ref.", "Elevation", "Elevation", "Elevation")
 Elevation$Covariates <- c("900-1601 (Ref.)", "600-899 (m)", "250-599 (m)", "3-249 (m)")
 
-# ---- 12.3 Sewerage -----------------------------------------------------------
+# Sewerage 
 sew <-  cbind(fit121$summary.random$sew$ID, 
        round(exp(fit121$summary.random$sew [,c( "mean","0.025quant","0.975quant")]),2))
 sew <-rename (sew, 'ID' = `fit121$summary.random$sew$ID`   )
@@ -328,7 +320,7 @@ sew <- rbind(linha, sew)
 sew$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
 sew$Covariates <- c ("sewerage <=0.3 (Ref.)","sewerage>0.3 & <=0.6", "sewerage >0.6")
 
-# ---- 12.4 Piped water --------------------------------------------------------
+# Piped water 
 pip <- cbind(fit121$summary.random$pip$ID, 
       round(exp(fit121$summary.random$pip [,c( "mean","0.025quant","0.975quant")]),2)) 
 pip <-rename (pip, 'ID' = `fit121$summary.random$pip$ID`   )
@@ -336,7 +328,7 @@ pip <- rbind(linha, pip)
 pip$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
 pip$Covariates <- c ("piped <=0.3 (Ref.)","piped >0.3 & <=0.6", "piped >0.6")
 
-# ---- 12.5 Biome --------------------------------------------------------------
+# Biome 
 Biome <-  cbind(fit121$summary.random$Biome$ID, 
        round(exp(fit121$summary.random$Biome [,c( "mean","0.025quant","0.975quant")]),2))
 Biome <-rename (Biome, 'ID' = `fit121$summary.random$Biome$ID`   )
@@ -345,7 +337,7 @@ Biome <- rbind(linha, Biome)
 Biome$type <- c("Ref.",'Biome', 'Biome','Biome', 'Biome','Biome') 
 Biome$Covariates <- c ("Mata Atlantica (Ref.)","Pantanal", "Pampa", "Amazonia", "Cerrado", "Caatinga")
 
-# ---- 12.6 Combine all tables ----------------------------------------------------
+# Combine all tables 
 tab <- rbind(pip, sew, Elevation, Biome, var)
 tab <-rename (tab, ll = '0.025quant'  )
 tab <-rename (tab, ul = '0.975quant'  )
@@ -379,7 +371,7 @@ tab$Covariates <- factor(tab$Covariates, levels = rev(c(
 
 tab <- tab %>% filter(Covariates != "Intercept")
 
-# ---- 13. Plot IRR with 95% CI ---------------------------------------------
+# ---- 11. Plot IRR with 95% CI ---------------------------------------------
 
 Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)) +
   geom_point(size = 3) +  
@@ -445,7 +437,7 @@ Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)
     legend.position = ""  # Remove legend
   )
 
-# ---- 14. Plot Tmin effect ------------------------------------------------------
+# ---- 12. Plot Tmin effect ------------------------------------------------------
 data <- fit121$summary.random$Tmin.grp[,c( "ID", "mean","0.025quant","0.975quant")]
 
 # Extract Tmin random effect summary
@@ -477,7 +469,7 @@ FigTmin <-ggplot(data, aes(x = ID)) +
     )
 
 
-# ---- 15. Combine plots with layout ------------------------------------------------
+# Combine plots with layout
 layout.matrix <- matrix(c(1, 3, 2, 3), nrow = 2, ncol = 2)
 layout(mat = layout.matrix,
        heights = c(4, 1), # Heights of the two rows
@@ -502,7 +494,7 @@ layout <-grid.arrange(
 # Save combined figure as PNG
 ggsave("Fig5_grafico_RR_CI.png",  layout, width = 19, height = 11,  unit="cm", dpi = 1000)
 
-# ---- 16. Prepare dataset for mapping ------------------------------
+# ---- 13. Prepare dataset for mapping ------------------------------
 rnams <- c( paste0(
     "summary.", c("fixed", "hyperpar", "random", "fitted.values")
   ), "internal.marginals.hyperpar", "mlik", "mode", "cpu.used")
@@ -521,7 +513,7 @@ dataf$pred_ul = fit121$summary.fitted.values[1:ndata, "0.975quant"] / dataf$pop1
 # Export results table for QGIS mapping (Figure 6 in the paper)
 #write.table(dataf, "Result_model.csv", sep=";", dec = ".", row.names = FALSE, na="")
 
-# ---- 17. Prepare region shapefile ----------------------------------------------
+# ---- 14. Prepare region shapefile ----------------------------------------------
 # Load Brazilian regions (year 2020)
 reg <- read_region(year = 2020,showProgress = FALSE)
 
@@ -537,7 +529,7 @@ reg_main <- reg_single %>%
   ungroup() %>%
   select(-area)
 
-# ---- 18. Map: Posterior Mean of Predicted Cases ---------------------------------
+# ---- 15. Map: Posterior Mean of Predicted Cases ---------------------------------
 dw <-dataf %>% select (id_key_time, ID_MN_RESI, pred_mean) %>% 
   reshape(timevar = "id_key_time",
           idvar = "ID_MN_RESI", direction = "wide")
@@ -633,7 +625,7 @@ ggp
 north2(ggp = ggp, scale = 0.065, x = 0.88, y = 0.04, symbol = 10)
 dev.off()
 
-# ---- 19. Lower Limit of Predicted Cases (95% CI) -----------------------------
+# ---- 16. Lower Limit of Predicted Cases (95% CI) -----------------------------
 dw_ll <-dataf %>% select (id_key_time, ID_MN_RESI, pred_ll) %>% 
   reshape(timevar = "id_key_time",
           idvar = "ID_MN_RESI", direction = "wide")
@@ -721,7 +713,7 @@ north2(ggp = ggp, scale = 0.065, x = 0.88, y = 0.04, symbol = 10)
 dev.off()
 
 
-# ---- 20. Map: Upper  Limit of Predicted Cases (95% CI) ----------------------
+# ---- 17. Map: Upper  Limit of Predicted Cases (95% CI) ----------------------
 dw_ul <-dataf %>% select (id_key_time, ID_MN_RESI, pred_ul) %>% 
   reshape(timevar = "id_key_time",
           idvar = "ID_MN_RESI", direction = "wide")
