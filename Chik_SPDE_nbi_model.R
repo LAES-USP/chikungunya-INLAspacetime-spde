@@ -1,7 +1,7 @@
 ####  Spatio-temporal modeling of chikungunya in Brazil ####
 #  Author: Raquel Gardini Sanches Palasio
-#  Article: "Spatio-temporal modeling of chikungunya in Brazil:
-#            The Interplay of Climate, Mobility, and Socioeconomic Factors"
+#  Article: "Spatio-temporal Modeling of chikungunya in Brazil:
+#            Interplay of Climate, Mobility, and Socioeconomic Factors"
 #  Description: Implementation of a DEMF(1,2,1) SPDE model using INLAspacetime
 # R version 4.3.3 (2024-02-29) -- "Angel Food Cake"
 
@@ -801,4 +801,5 @@ jpeg("FigS8_map_pred_ul.jpeg", width = 17, height = 10,
 ggp 
 north2(ggp = ggp, scale = 0.065, x = 0.88, y = 0.04, symbol = 10)
 dev.off()
+
 
