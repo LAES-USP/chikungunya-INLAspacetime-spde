@@ -1,6 +1,6 @@
 This repository contains the complementary materials associated with the article:
 
-**"Spatio-temporal modeling of chikungunya in Brazil: The Interplay of Climate, Mobility, and Socioeconomic Factors"**  
+**"Spatio-temporal Modeling of chikungunya in Brazil: Interplay of Climate, Mobility, and Socioeconomic Factors"**  
 **Authors:** Raquel Gardini Sanches Palasio, Patricia Marques Moralejo Bermudi, Gerson Laurindo Barbosa, Pedro Silva Peixoto, Sergio Muniz Oliva, Camila Lorenz, Marta Blangiardo, Monica Pirani, and Francisco Chiaravalloti-Neto.
 
 Includes SPDE-based INLA modeling, visualization scripts, and mapping outputs.
