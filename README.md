@@ -75,7 +75,7 @@ fmesher: 0.1.7
 ## Citation
 If you use or adapt this code, please cite the original article:
 Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lorenz, C., Blangiardo, M., Pirani, M., & Chiaravalloti-Neto, F.
-Spatio-temporal modeling of chikungunya in Brazil: The Interplay of Climate, Mobility, and Socioeconomic Factors.
+Spatio-temporal Modeling of chikungunya in Brazil: Interplay of Climate, Mobility, and Socioeconomic Factors.
 [Journal name, Year, DOI – to be added upon publication]
 
 Contact: Raquel Gardini Sanches Palasio
