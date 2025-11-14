@@ -37,6 +37,8 @@ This repository accompanies the manuscript by providing the R scripts and reduce
      - Non-linear climate effect plots  
      - Maps of predicted chikungunya incidence, including posterior mean and 95% CI  
 
+Lindgren F, Bakka H, Bolin D, Krainski E, Rue H. A diffusion-based spatiotemporal extension of Gaussian Matéern fields. SORT-Statistics and Operations Research Transactions. 2024;48(1):3–66. https://doi.org/10.57645/20.8080.02.13.
+
 ---
 
 ## Data Availability
