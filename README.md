@@ -82,14 +82,10 @@ library(ggsn)
 library(dplyr)
 library(sf)
 ```
-Operating Systems Tested
-
-macOS Ventura 13+
-Ubuntu Linux 22.04
+## Operating Systems 
 Windows 10 / 11 (RStudio)
 
 ## Hardware Requirements
-
 The full model (not included in this repository due to size constraints) was originally fitted on a workstation with:
 32–64 GB RAM
 Multicore CPU
@@ -156,25 +152,40 @@ Step 1 — Prepare Data
 
 Step 2 — Build Mesh (SPDE)
 ```R
-mesh <- fm_mesh_2d(loc = dataf[, c("xUTM", "yUTM")])
+mesh <- inla.mesh.2d(loc = cbind(coords.cv[, 1], coords.cv[, 2]),
+         boundary = st_as_sfc(border))
 ```
 Step 3 — Define Model Components
 ```R
-cmp <- ~ Intercept(1) +
-        Prec(Prec) +
-        logKatz(logKatz) +
-        Forest(Forest) +
-        Tmin.grp(ID.time.1, model = "rw2") +
-        field(space = cbind(xUTM, yUTM), time = ID.time.1, model = spde)
+
+M <- ~ -1 + Intercept(1) +
+  myoffset(log(pop10), model = "offset") +
+  sew(sewerage.fc, model ="factor_contrast") +  # Socioeconomic: sewerage
+  pip(piped.fc, model ="factor_contrast") +     # Socioeconomic: piped water
+  Tmin.grp(Tmin.grp, model= 'rw2') +            # Climate: min temperature (nonlinear)
+  Prec +                                        # Climate: precipitation
+  logKatz +                                     # Mobility: Katz index (Log)
+  Forest +                                      # Environmental: forest cover
+  Alt(ALT.fc, model = "factor_contrast") +      # Elevation factor
+  Biome(BIO.fc, model ="factor_contrast") +     # Biome categorical factor
+  field(list(
+    space = cbind(xUTM, yUTM),               # Spatial coordinates
+    time = ID.time.1),                       # Temporal index
+    model = stmodel)                         # Spatiotemporal model defined earlier
 ```
 Step 4 — Fit Model (optional, advanced)
 Only recommended for users with high-performance hardware.
 
 ```R
-fit <- bru(cmp,
-           family = "nbinomial",
-           data = dataf,
-           options = list(control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)))
+lhood <- like(
+  formula = y ~ .,          # Response variable is count of cases (y)
+  family = "nbinomial",     # Negative binomial model for overdispersed counts
+  data = dataf
+)
+
+fit <- bru(M,
+           lhood,
+            options = list(control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)))
 ```
 ## (Optional) Reproduction Instructions
 
