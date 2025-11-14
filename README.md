@@ -72,7 +72,7 @@ INLA: 24.3.29
 INLAspacetime: 0.1.8
 inlabru: 2.10.1
 fmesher: 0.1.7
-```
+
 Additional R packages
 library(INLAOutputs)
 library(geobr)
@@ -81,7 +81,7 @@ library(ggspatial)
 library(ggsn)
 library(dplyr)
 library(sf)
-
+```
 Operating Systems Tested
 
 macOS Ventura 13+
@@ -97,7 +97,7 @@ Multicore CPU
 
 However, the reduced objects provided in this repository (fit121_reduced.RData and fit121_reduced_map.RData) require less than 2 GB RAM, and load normally on standard systems.
 
-2. Installation Guide
+### Installation Guide
 Step 1 — Install INLA
 install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
 
@@ -110,25 +110,26 @@ install.packages("inlabru")
 Typical installation time
 
 On a standard laptop (8–16 GB RAM):
-
 R packages: 5–10 minutes
 
 INLA installation: 2–5 minutes
 
-3. Demo
+### Demo
 
 A demonstration script is provided in:
 Chik_SPDE_nbi_model.R
 
 How to run the demo
 # Load model output (reduced size)
+```R
 load("fit121_reduced.RData")       # contains fixed effects, hyperparameters, WAIC, DIC, CPO
 load("fit121_reduced_map.RData")   # contains subset of fitted values for mapping
-
+```
 # Load input data
+```R
 load("data/dataf.RData")
-
-Expected Output
+```
+# Expected Output
 
 Posterior summaries of:
 fixed effects
@@ -150,7 +151,7 @@ Running demo plots: 10–30 seconds
 
 (Note: The full model fitting is not included, as it takes ~24 hours and requires high-memory systems.)
 
-4. Instructions for Use
+## Instructions for Use
 
 Users may apply the model code to their own datasets following these steps:
 
@@ -163,37 +164,40 @@ population offset
 covariates (Prec, Tmin.grp, logKatz, Forest, etc.)
 
 Step 2 — Build Mesh (SPDE)
+```R
 mesh <- fm_mesh_2d(loc = dataf[, c("xUTM", "yUTM")])
-
+```
 Step 3 — Define Model Components
+```R
 cmp <- ~ Intercept(1) +
         Prec(Prec) +
         logKatz(logKatz) +
         Forest(Forest) +
         Tmin.grp(ID.time.1, model = "rw2") +
         field(space = cbind(xUTM, yUTM), time = ID.time.1, model = spde)
-
+```
 Step 4 — Fit Model (optional, advanced)
 
 Only recommended for users with high-performance hardware.
 
+```R
 fit <- bru(cmp,
            family = "nbinomial",
            data = dataf,
            options = list(control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)))
-
+```
 (Optional) Reproduction Instructions
 
 The repository includes:
 
-Reduced model objects (fit121_reduced)
-Subset of fitted values for mapping (fit121_reduced_map)
-Full plotting and mapping scripts
-These allow reproduction of all:
-fixed-effect tables
-hyperparameter summaries
-relative risk curves
-spatial maps (posterior mean, 95% CI)
+   - Reduced model objects (fit121_reduced)
+   - Subset of fitted values for mapping (fit121_reduced_map)
+   - Full plotting and mapping scripts
+   - These allow reproduction of all:
+   - fixed-effect tables
+   - hyperparameter summaries
+   - relative risk curves
+   - spatial maps (posterior mean, 95% CI)
 
 without refitting the full model.
 
