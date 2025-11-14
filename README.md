@@ -88,80 +88,77 @@ macOS Ventura 13+
 Ubuntu Linux 22.04
 Windows 10 / 11 (RStudio)
 
-Hardware Requirements
+## Hardware Requirements
 
 The full model (not included in this repository due to size constraints) was originally fitted on a workstation with:
-
 32–64 GB RAM
 Multicore CPU
-
 However, the reduced objects provided in this repository (fit121_reduced.RData and fit121_reduced_map.RData) require less than 2 GB RAM, and load normally on standard systems.
 
 ### Installation Guide
 Step 1 — Install INLA
+```R
 install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
-
+```
 Step 2 — Install required CRAN packages
+```R
 install.packages(c("geobr", "sf", "ggplot2", "dplyr", "ggspatial", "ggsn"))
-
+```
 Step 3 — Install inlabru
+```R
 install.packages("inlabru")
-
-Typical installation time
+```
+## Typical installation time
 
 On a standard laptop (8–16 GB RAM):
 R packages: 5–10 minutes
-
 INLA installation: 2–5 minutes
 
-### Demo
+## Demo
 
 A demonstration script is provided in:
 Chik_SPDE_nbi_model.R
 
 How to run the demo
-# Load model output (reduced size)
+### Load model output (reduced size)
 ```R
 load("fit121_reduced.RData")       # contains fixed effects, hyperparameters, WAIC, DIC, CPO
 load("fit121_reduced_map.RData")   # contains subset of fitted values for mapping
 ```
-# Load input data
+### Load input data
 ```R
 load("data/dataf.RData")
 ```
-# Expected Output
+### Expected Output
 
 Posterior summaries of:
-fixed effects
-hyperparameters
-selected random effects
-Model fit statistics:
-WAIC, DIC, CPO
+ - fixed effects
+ - hyperparameters
+ - selected random effects
+ - Model fit statistics:
+ - WAIC, DIC, CPO
 
 Figures:
-Relative risk plots
-Fitted trend curves
-Maps of predicted incidence and 95% CI
+ - Relative risk plots
+ - Fitted trend curves
+ - Maps of predicted incidence and 95% CI
 
-Run Time
-
-On a normal computer (8–16GB RAM):
-Loading data: < 10 seconds
-Running demo plots: 10–30 seconds
-
+### Run Time
+- On a normal computer (8–16GB RAM):
+- Loading data: < 10 seconds
+- Running demo plots: 10–30 seconds
+  
 (Note: The full model fitting is not included, as it takes ~24 hours and requires high-memory systems.)
 
-## Instructions for Use
-
+### Instructions for Use
 Users may apply the model code to their own datasets following these steps:
 
 Step 1 — Prepare Data
-
-Your data must include:
-coordinates (xUTM, yUTM)
-time index
-population offset
-covariates (Prec, Tmin.grp, logKatz, Forest, etc.)
+ - Your data must include:
+ - coordinates (xUTM, yUTM)
+ - time index
+ - population offset
+ - covariates (Prec, Tmin.grp, logKatz, Forest, etc.)
 
 Step 2 — Build Mesh (SPDE)
 ```R
@@ -177,7 +174,6 @@ cmp <- ~ Intercept(1) +
         field(space = cbind(xUTM, yUTM), time = ID.time.1, model = spde)
 ```
 Step 4 — Fit Model (optional, advanced)
-
 Only recommended for users with high-performance hardware.
 
 ```R
@@ -186,7 +182,7 @@ fit <- bru(cmp,
            data = dataf,
            options = list(control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)))
 ```
-(Optional) Reproduction Instructions
+## (Optional) Reproduction Instructions
 
 The repository includes:
 
