@@ -96,17 +96,11 @@ Multicore CPU
 However, the reduced objects provided in this repository (fit121_reduced.RData and fit121_reduced_map.RData) require less than 2 GB RAM, and load normally on standard systems.
 
 ### Installation Guide
-Step 1 — Install INLA
 ```R
-install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
-```
-Step 2 — Install required CRAN packages
-```R
-install.packages(c("geobr", "sf", "ggplot2", "dplyr", "ggspatial", "ggsn"))
-```
-Step 3 — Install inlabru
-```R
+remotes::install_version("INLA", version="24.03.29",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/testing"), dep=TRUE)
+remotes::install_version("fmesher", "0.1.7")
 install.packages("inlabru")
+install.packages(c("geobr", "sf", "ggplot2", "dplyr", "ggspatial", "ggsn"))
 ```
 ## Typical installation time
 
