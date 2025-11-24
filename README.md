@@ -210,7 +210,7 @@ Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lor
 Spatio-temporal Modeling of chikungunya in Brazil: Interplay of Climate, Mobility, and Socioeconomic Factors.
 [Journal name, Year, DOI – to be added upon publication]
 
-Palasio, R. (2025). chikungunya-INLAspacetime-spde. Zenodo. https://doi.org/10.5281/zenodo.17604821
+Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). chikungunya-INLAspacetime-spde. Zenodo. https://doi.org/10.5281/zenodo.17604821
 
 Contact: Raquel Gardini Sanches Palasio
 Thank you for your interest in this project!
