@@ -132,7 +132,7 @@ mesh_plot <- ggplot() +
 
 # Save figure (high-resolution)
 ggsave(
-  filename = "FigS9_mesh.jpeg",
+  filename = "FigS10_mesh.jpeg",
   plot = mesh_plot,
   dpi = 1000,
   width = 8,
@@ -618,7 +618,7 @@ ggp <- ggplot() +
            facet.lev = c("Spring 2024"))
 
 # Save map as JPEG 
-jpeg("FigS6_map_pred_mean_all.jpeg", width = 17, height = 10, 
+jpeg("FigS5_map_pred_mean_all.jpeg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
     )
 ggp 
@@ -705,7 +705,7 @@ ggp <- ggplot() +
            facet.var = c("id"),  
            facet.lev = c("Spring 2024"))
 
-jpeg("FigS7_map_pred_ll.jpeg", width = 17, height = 10, 
+jpeg("FigS6_map_pred_ll.jpeg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
 )
 ggp 
@@ -795,7 +795,7 @@ ggp <- ggplot() +
            facet.lev = c("Spring 2024"))
 
 
-jpeg("FigS8_map_pred_ul.jpeg", width = 17, height = 10, 
+jpeg("FigS7_map_pred_ul.jpeg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
 )
 ggp 
