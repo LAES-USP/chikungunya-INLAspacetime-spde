@@ -16,7 +16,6 @@ This repository accompanies the manuscript by providing the R scripts and reduce
   Contains the datasets and auxiliary files used in the study:  
   - `*.RData`: model outputs.  
   - `borda_102033.*`: Shapefile defining Brazilian administrative borders for spatial modeling.
-  - `amostras_blocos1_chik_original.RData, amostras_blocos2_chik_original.RData, amostras_blocos3_chik_original.RData`: three batches of posterior samples (200 samples each; 600 total) used for the posterior variance partitioning analysis.
 
 ---
 ### 2. Scripts
@@ -49,11 +48,23 @@ Lindgren F, Bakka H, Bolin D, Krainski E, Rue H. A diffusion-based spatiotempora
 The datasets and variable dictionary are publicly available at:  
 [**Figshare (https://doi.org/10.6084/m9.figshare.30410647)**]  
 
-The dataset includes:
+The Figshare includes:
 - Chikungunya incidence per municipality and time point (seasonal aggregation)  
 - Covariates: climate (temperature, precipitation), mobility, socioeconomic indicators (Katz index, piped water, sewerage), environmental (forest cover, altitude, biome), ENSO classification  
 - Spatial units: municipalities (`COD_MUN6`) and Brazilian regions  
 - Temporal coverage: 2015–2024 (seasonal)
+
+The complete model objects, posterior samples, and intermediate results required for full computational reproducibility are archived in Zenodo:
+[**Zenodo archive: https://doi.org/10.5281/zenodo.17604821**]  
+
+The Zenodo archive includes:
+
+Posterior sample batches:
+amostras_blocos1_chik_original.RData
+amostras_blocos2_chik_original.RData
+amostras_blocos3_chik_original.RData
+
+These correspond to three posterior sampling batches (200 samples each; 600 samples total) used for posterior variance partitioning analysis.
 
 ---
 
