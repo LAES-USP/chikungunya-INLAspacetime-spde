@@ -1,6 +1,6 @@
 This repository contains the Supplementary materials associated with the article:
 
-**"Spatio-temporal Modeling of chikungunya in Brazil: Interplay of Climate, Mobility, and Socioeconomic Factors"**  
+**"Spatiotemporal modeling of chikungunya in Brazil through interplay of climate with mobility and socioeconomic factors"**  
 **Authors:** Raquel Gardini Sanches Palasio, Patricia Marques Moralejo Bermudi, Gerson Laurindo Barbosa, Pedro Silva Peixoto, Sergio Muniz Oliva, Camila Lorenz, Marta Blangiardo, Monica Pirani, and Francisco Chiaravalloti-Neto.
 
 Includes SPDE-based INLA modeling, visualization scripts, and mapping outputs.
@@ -207,10 +207,11 @@ without refitting the full model.
 ## Citation
 If you use or adapt this code, please cite the original article:
 Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lorenz, C., Blangiardo, M., Pirani, M., & Chiaravalloti-Neto, F.
-Spatio-temporal Modeling of chikungunya in Brazil: Interplay of Climate, Mobility, and Socioeconomic Factors.
-[Journal name, Year, DOI – to be added upon publication]
+Spatiotemporal modeling of chikungunya in Brazil through interplay of climate with mobility and socioeconomic factors.
+[Journal name, 2026, DOI – to be added upon publication]
 
-Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). chikungunya-INLAspacetime-spde. Zenodo. https://doi.org/10.5281/zenodo.17604821
+Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). Code for article ”Spatio-temporal Modeling of chikungunya in Brazil though interplay of climate
+with mobility and Socioeconomic Factors”. Zenodo. https://doi.org/10.5281/zenodo.17604821
 
 Contact: Raquel Gardini Sanches Palasio
 Thank you for your interest in this project!
