@@ -60,9 +60,9 @@ The complete model objects, posterior samples, and intermediate results required
 The Zenodo archive includes:
 
 Posterior sample batches:
-amostras_blocos1_chik_original.RData
-amostras_blocos2_chik_original.RData
-amostras_blocos3_chik_original.RData
+- amostras_blocos1_chik_original.RData
+- amostras_blocos2_chik_original.RData
+- amostras_blocos3_chik_original.RData
 
 These correspond to three posterior sampling batches (200 samples each; 600 samples total) used for posterior variance partitioning analysis.
 
