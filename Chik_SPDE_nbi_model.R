@@ -1,7 +1,6 @@
 ####  Spatio-temporal modeling of chikungunya in Brazil ####
 #  Author: Raquel Gardini Sanches Palasio
-#  Article: "Spatio-temporal Modeling of chikungunya in Brazil:
-#            Interplay of Climate, Mobility, and Socioeconomic Factors"
+#  Article: "Spatiotemporal modeling of chikungunya in Brazil through interplay of climate with mobility and socioeconomic factors"
 #  Description: Implementation of a DEMF(1,2,1) SPDE model using INLAspacetime
 # R version 4.3.3 (2024-02-29) -- "Angel Food Cake"
 
@@ -154,8 +153,8 @@ df$Rtemp.grp <- inla.group(df$Rtemp, n = 25, method = "quantile")       # relati
 # ---- 4.2 Select Covariates --------------------------------------------------
 
 xnames <- c(
-  "sewerage", "piped", "Tmin", "Rtemp", "Forest", "NDVI", 
-  "Infra", "logKatz", "Tmin.grp", "Prec.grp", "Rtemp.grp"
+  "sewerage", "piped", "Tmin", "Rtemp", "Forest", "NDVI", "literacy"  , "income_sm" , "dens_urban", "dens_pop", 
+  "Infra", "logKatz", "Tmin.grp", "Prec.grp", "Rtemp.grp", "Prec"
 )
 
 # ---- 4.3 Create Modeling Data Frame -----------------------------------------
@@ -167,7 +166,7 @@ dataf <- data.frame(
     xnames
   )],
   pop10     = df$pop / 10000,        # population in 10k units
-  Prec      = df$Prec / 1000,        # precipitation in meters
+  dens_urban.l = log(df$dens_urban),
   ALT.fc    = factor(df$ALT.fc, levels = c(1, 2, 3, 4)), 
   BIO.fc    = factor(df$BIO.fc, levels = c(1, 2, 3, 4, 5, 6)), 
   Enso.fc2  = factor(df$Enso.fc2, levels = c(1, 2, 3, 4, 5, 6)),
@@ -232,6 +231,11 @@ M <- ~ -1 + Intercept(1) + myoffset(log(pop10), model = "offset") +
     time = ID.time.1),                       # Temporal index
     model = stmodel)                         # Spatiotemporal model defined earlier
 
+# NOTE:
+# An alternative model specification was also evaluated. In this version:
+# - income_sm replaced piped water and sewerage;
+# - dens_urban.l was included as an additional predictor;
+# - all remaining model components were unchanged.
 
 # ---- 6. Define Likelihood ---------------------------------------------------
 lhood <- like(
@@ -244,7 +248,8 @@ lhood <- like(
 ctrc <- list(
   waic = TRUE,  # Compute WAIC
   dic = TRUE,   # Compute DIC
-  cpo = TRUE    # Compute CPO for model checking
+  cpo = TRUE,   # Compute CPO for model checking
+  config = TRUE
 )
 
 # ---- 8. Fit the Model -------------------------------------------------------
@@ -802,4 +807,229 @@ ggp
 north2(ggp = ggp, scale = 0.065, x = 0.88, y = 0.04, symbol = 10)
 dev.off()
 
+# ---- 18. Variance Partitioning Analysis ------------------------------------------
+# ---- 18.1 Generate posterior samples for all model components --------------------
 
+amostras_blocos <- generate(
+  fit121,
+  newdata = dataf,
+  formula = ~ list(
+    # Socioeconomic component
+    socioecon = pip + sew,
+
+    # Mobility component
+    mobility = logKatz,
+
+    # Environmental component
+    environmental = Forest,
+
+    # Climate component
+    climate = Prec + Tmin.grp,
+
+    # Elevation component
+    elevation = Alt,
+
+    # Biome component
+    biome = Biome,
+
+    # Spatiotemporal random field
+    espaciotemporal = field,
+
+    # Fixed intercept
+    intercepto = Intercept
+  ),
+  n.samples = 200
+)
+
+save(amostras_blocos,
+     file = "data/amostras1_chik_original.Rdata")
+# Repeat the same procedure for batches 2 and 3
+
+# ---- 18.2 Combine posterior samples ----------------------------------------------
+
+load("data/amostras1_chik_original.Rdata")
+amostras_blocos1 <- amostras_blocos
+
+load("data/amostras2_chik_original.Rdata")
+amostras_blocos2 <- amostras_blocos
+
+load("data/amostras3_chik_original.Rdata")
+amostras_blocos3 <- amostras_blocos
+
+amostras_blocos <- c(
+  amostras_blocos1,
+  amostras_blocos2,
+  amostras_blocos3
+)
+
+# ---- 18.3 Compute posterior variance partition ----------------------------------
+
+n_samples <- length(amostras_blocos)
+
+df_variancias <- data.frame(
+  Socioeconomic  = numeric(n_samples),
+  Mobility       = numeric(n_samples),
+  Environmental  = numeric(n_samples),
+  Climate        = numeric(n_samples),
+  Spatiotemporal = numeric(n_samples)
+)
+
+for (i in seq_len(n_samples)) {
+
+  ## Environmental block
+  environmental <-
+    amostras_blocos[[i]]$environmental +
+    amostras_blocos[[i]]$elevation +
+    amostras_blocos[[i]]$biome
+
+  ## Variance of each component
+  v_soc <- var(amostras_blocos[[i]]$socioecon)
+  v_mob <- var(amostras_blocos[[i]]$mobility)
+  v_cli <- var(amostras_blocos[[i]]$climate)
+  v_env <- var(environmental)
+  v_st  <- var(amostras_blocos[[i]]$espaciotemporal)
+
+  ## Complete linear predictor
+  eta_total <-
+    amostras_blocos[[i]]$intercepto +
+    amostras_blocos[[i]]$socioecon +
+    amostras_blocos[[i]]$mobility +
+    amostras_blocos[[i]]$environmental +
+    amostras_blocos[[i]]$climate +
+    amostras_blocos[[i]]$elevation +
+    amostras_blocos[[i]]$biome +
+    amostras_blocos[[i]]$espaciotemporal
+
+  v_total <- var(eta_total)
+
+  ## Percentage contribution
+  df_variancias$Socioeconomic[i]  <- 100 * v_soc / v_total
+  df_variancias$Mobility[i]       <- 100 * v_mob / v_total
+  df_variancias$Environmental[i]  <- 100 * v_env / v_total
+  df_variancias$Climate[i]        <- 100 * v_cli / v_total
+  df_variancias$Spatiotemporal[i] <- 100 * v_st  / v_total
+}
+
+head(df_variancias)
+
+# ---- 18.4 Summary table ----------------------------------------------------------
+
+tab <- df_variancias %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Component",
+    values_to = "Percentage"
+  ) %>%
+  group_by(Component) %>%
+  summarise(
+    Mean_Pct = mean(Percentage),
+    SD_Pct   = sd(Percentage),
+    CI_lower = quantile(Percentage, 0.025),
+    CI_upper = quantile(Percentage, 0.975),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Mean_Pct))
+
+print(tab)
+
+# ---- 18.5 Data for plotting ------------------------------------------------------
+
+df_resumo <- df_variancias %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Component",
+    values_to = "Percentage"
+  ) %>%
+  group_by(Component) %>%
+  summarise(
+    Mean  = mean(Percentage),
+    Lower = quantile(Percentage, 0.025),
+    Upper = quantile(Percentage, 0.975),
+    .groups = "drop"
+  )
+
+# ---- 18.6 Define color palette ---------------------------------------------------
+
+cores_manuais <- c(
+  Socioeconomic  = "orange",
+  Mobility       = "black",
+  Environmental  = "green3",
+  Climate        = "blue",
+  Elevation      = "red",
+  Biome          = "brown",
+  Spatiotemporal = "grey"
+)
+
+# ---- 18.7 Plot posterior variance partition --------------------------------------
+
+grafico_final <-
+  ggplot(
+    df_resumo,
+    aes(
+      x = reorder(Component, Mean),
+      y = Mean,
+      color = Component
+    )
+  ) +
+
+  geom_hline(
+    yintercept = seq(0, 100, by = 10),
+    color = "grey92",
+    linewidth = 0.4
+  ) +
+
+  geom_segment(
+    aes(
+      xend = reorder(Component, Mean),
+      y = Lower,
+      yend = Upper
+    ),
+    linewidth = 6,
+    lineend = "round"
+  ) +
+
+  geom_errorbar(
+    aes(
+      ymin = Mean,
+      ymax = Mean
+    ),
+    width = 0.5,
+    color = "black",
+    linewidth = 0.9
+  ) +
+
+  scale_color_manual(values = cores_manuais) +
+
+  scale_y_continuous(
+    breaks = seq(0, 100, by = 10),
+    limits = c(0, 100)
+  ) +
+
+  coord_flip() +
+
+  labs(
+    x = "",
+    y = "Contribution to Total Estimated Variance (%; 95% CI)"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    legend.position = "none",
+    text = element_text(size = 12),
+    axis.line = element_line(color = "grey40"),
+    axis.ticks = element_line(color = "grey40"),
+    panel.grid = element_blank()
+  )
+
+print(grafico_final)
+
+# ---- 18.8 Export figures ---------------------------------------------------------
+
+ggsave(
+  "Result/Fig7_Variance_Part_original.jpg",
+  grafico_final,
+  width = 7,
+  height = 4.5,
+  dpi = 600
+)
