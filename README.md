@@ -16,6 +16,7 @@ This repository accompanies the manuscript by providing the R scripts and reduce
   Contains the datasets and auxiliary files used in the study:  
   - `*.RData`: model outputs.  
   - `borda_102033.*`: Shapefile defining Brazilian administrative borders for spatial modeling.
+  - `amostras_blocos1_chik_original.RData, amostras_blocos2_chik_original.RData, amostras_blocos3_chik_original.RData`: three batches of posterior samples (200 samples each; 600 total) used for the posterior variance partitioning analysis.
 
 ---
 ### 2. Scripts
@@ -35,7 +36,9 @@ This repository accompanies the manuscript by providing the R scripts and reduce
   7. Generate figures:
      - Plots of incidence rate ratios (IRR) with 95% credible intervals  
      - Non-linear climate effect plots  
-     - Maps of predicted chikungunya incidence, including posterior mean and 95% CI  
+     - Maps of predicted chikungunya incidence, including posterior mean and 95% CI
+  8. Perform posterior variance partitioning analysis to quantify the relative contribution of each model component to the total variance of the linear predictor.
+     - Posterior variance partitioning plot with 95% credible intervals
 
 Lindgren F, Bakka H, Bolin D, Krainski E, Rue H. A diffusion-based spatiotemporal extension of Gaussian Matéern fields. SORT-Statistics and Operations Research Transactions. 2024;48(1):3–66. https://doi.org/10.57645/20.8080.02.13.
 
@@ -196,11 +199,14 @@ The repository includes:
    - Reduced model objects (fit121_reduced)
    - Subset of fitted values for mapping (fit121_reduced_map)
    - Full plotting and mapping scripts
+   - Posterior sample batches (amostras_blocos) used for posterior variance partitioning.
+     
    - These allow reproduction of all:
    - fixed-effect tables
    - hyperparameter summaries
    - relative risk curves
    - spatial maps (posterior mean, 95% CI)
+   - Posterior variance partitioning summaries and figures.
 
 without refitting the full model.
 
