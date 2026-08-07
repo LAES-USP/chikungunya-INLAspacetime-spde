@@ -154,7 +154,7 @@ mesh_plot <- ggplot() +
 
 # Save figure (high-resolution)
 ggsave(
-  filename = "FigS10_mesh.jpg",
+  filename = "FigS5_mesh.jpg",
   plot = mesh_plot,
   dpi = 1000,
   width = 8,
