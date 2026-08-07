@@ -54,17 +54,23 @@ The Figshare includes:
 - Spatial units: municipalities (`COD_MUN6`) and Brazilian regions  
 - Temporal coverage: 2015–2024 (seasonal)
 
-The complete model objects, posterior samples, and intermediate results required for full computational reproducibility are archived in Zenodo:
+The reduced model objects, posterior samples required for full computational reproducibility are archived in Zenodo:
 [**Zenodo archive: https://doi.org/10.5281/zenodo.17604821**]  
 
 The Zenodo archive includes:
 
-Posterior sample batches:
+Posterior sample:
 - amostras_chik_income_dens_urb1.Rdata
 - amostras_chik_income_dens_urb2.Rdata
 - amostras_chik_income_dens_urb3.Rdata
   
 These correspond to three posterior sampling batches (200 samples each; 600 samples total) used for posterior variance partitioning analysis.
+
+A consolidated reduced model object is also provided:
+- fit121_reduced_income_dens_urb.RData
+
+This file contains the reduced `inlabru` model object, including the model structure, posterior summaries, fixed and random effects, hyperparameters, and associated model information. 
+The Git repository provides the posterior samples split into multiple files to facilitate version control and file management.
 
 ---
 
@@ -128,8 +134,10 @@ Chik_SPDE_nbi_model.R
 How to run the demo
 ### Load model output (reduced size)
 ```R
-load("fit121_reduced_income.RData")       # contains fixed effects, hyperparameters, WAIC, DIC, CPO
-load("fit121_reduced_income_map.RData")   # contains subset of fitted values for mapping
+load("fit121_reduced_income_bru1.RData")       # contains: fixed effects, random effects, hyperparameters, WAIC, DIC, CPO, marginals.fixed, and model summary outputs
+load("fit121_reduced_income_bru2.RData")       # contains: bru_info structure (method, model, options, inlabru version, and INLA version)
+load("fit121_reduced_income_bru3.RData")       # contains: bru_info$lhoods (likelihood information)
+load("fit121_reduced_income_map.RData")        # contains: subset of fitted values for mapping
 ```
 ### Load input data
 ```R
@@ -207,7 +215,7 @@ fit <- bru(M,
 
 The repository includes:
 
-   - Reduced model object (`fit121_reduced_income.RData`)
+   - Reduced model object (`fit121_reduced_income_bru [1-3].RData`)
    - Subset of fitted values for mapping (`fit121_reduced_income_map.RData`)
    - Alternative reduced model object (fit121_reduced_sew_piped.RData)
    - Subset of fitted values for mapping from the alternative model (`fit121_reduced_map_sew_piped.RData`)
@@ -227,7 +235,7 @@ without refitting the full model.
 If you use or adapt this code, please cite the original article:
 Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lorenz, C., Blangiardo, M., Pirani, M., & Chiaravalloti-Neto, F.
 Spatiotemporal modeling of chikungunya in Brazil through the interplay of climate, mobility, and socioeconomic factors.
-[Journal name, 2026, DOI – to be added upon publication]
+[2026]
 
 Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). Code for article ”Spatio-temporal Modeling of chikungunya in Brazil though interplay of climate
 with mobility and Socioeconomic Factors”. Zenodo. https://doi.org/10.5281/zenodo.17604821
