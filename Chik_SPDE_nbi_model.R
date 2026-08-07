@@ -33,7 +33,7 @@ library(jsonlite)
 
 # The dataset 'data' should contain chikungunya incidence and covariates
 # Variables include: time (month), space (municipality), Tmin, mobility index, etc.
-# Dataset and dictionary available at [**Figshare (link to be inserted)**]
+# Dataset and dictionary available at [Figshare (https://doi.org/10.6084/m9.figshare.30410647)]
 # Please download the dataset from Figshare and place it in the data/ folder before 
 # running the script.
 
