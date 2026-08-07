@@ -25,6 +25,9 @@ library(geobr)           # for Brazilian municipalities and regions
 library(ggspatial)       # to add north arrow and scale bar
 library(ggsn)            # extra map tools
 
+# Download from Figshare
+library(httr)
+library(jsonlite)
 
 # ---- 2. Load and Prepare Data ------------------------------------------------
 
@@ -34,7 +37,25 @@ library(ggsn)            # extra map tools
 # Please download the dataset from Figshare and place it in the data/ folder before 
 # running the script.
 
-data <- read_delim("data/df_ChiK.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
+# Figshare dataset ID
+ID_artigo <- 30410647
+
+# Figshare API Endpoint
+API_url <- paste0("https://api.figshare.com/v2/articles/", ID_artigo, "/files")
+res <- httr::GET(API_url)
+info_arquivos <- jsonlite::fromJSON(httr::content(res, "text", encoding = "UTF-8"))
+
+# Convert to data.frame
+info_arquivos <- as.data.frame(info_arquivos, stringsAsFactors = FALSE)
+
+# Download
+for (i in seq_len(nrow(info_arquivos))) {
+  GET(info_arquivos$download_url[i],
+      write_disk(file.path(dir_out, info_arquivos$name[i]), overwrite = TRUE)
+  )
+}
+
+data <- read_excel("data/Supplementary data.xlsx", sheet = "data")
 
 # ---- 2.1 Load Shapefile of Brazilian Municipalities --------------------------
 
@@ -60,13 +81,14 @@ BR.df <- BR.df[order(BR.df$COD_MUN6, decreasing = FALSE), ]
 BR.df$ID.space.1 <- seq(1, N)
 shp.df <- as.data.frame(cbind(my.ID=1:N, ID.space.1=BR.df$ID.space.1, ID_MN_RESI=BR.df$COD_MUN6))
 shp.df$ID_MN_RESI <- as.numeric(shp.df$ID_MN_RESI)
-
+shp.df$my.ID <- as.numeric(shp.df$my.ID)
 # ---- 2.3 Merge Spatial Identifiers with Main Data ----------------------------
 
 # Add municipality and time identifiers to dataset
 df <- left_join(data, shp.df[, c("my.ID", "ID_MN_RESI")], by = "ID_MN_RESI")
 
 # Order dataset by time and municipality to match shapefile order
+
 df <- arrange(df, ID.time.1, my.ID)
 
 # ---- 2.4 Coordinate Transformation -------------------------------------------
@@ -131,7 +153,7 @@ mesh_plot <- ggplot() +
 
 # Save figure (high-resolution)
 ggsave(
-  filename = "FigS10_mesh.jpeg",
+  filename = "FigS10_mesh.jpg",
   plot = mesh_plot,
   dpi = 1000,
   width = 8,
@@ -217,12 +239,13 @@ stmodel <- stModel.define(
 
 # Model formula: includes fixed effects, nonlinear effects, categorical factors,
 # offset for population, and spatiotemporal random field
+
 M <- ~ -1 + Intercept(1) + myoffset(log(pop10), model = "offset") +
-  sew(sewerage.fc, model ="factor_contrast") +  # Socioeconomic: sewerage
-  pip(piped.fc, model ="factor_contrast") +     # Socioeconomic: piped water
+  income_sm +                                   # Socioeconomic: income
   Tmin.grp(Tmin.grp, model= 'rw2') +            # Climate: min temperature (nonlinear)
   Prec +                                        # Climate: precipitation
   logKatz +                                     # Mobility: Katz index (Log)
+  dens_urban.l +                                # Demographic: Urban population  density (log)
   Forest +                                      # Environmental: forest cover
   Alt(ALT.fc, model = "factor_contrast") +      # Elevation factor
   Biome(BIO.fc, model ="factor_contrast") +     # Biome categorical factor
@@ -231,11 +254,26 @@ M <- ~ -1 + Intercept(1) + myoffset(log(pop10), model = "offset") +
     time = ID.time.1),                       # Temporal index
     model = stmodel)                         # Spatiotemporal model defined earlier
 
+
 # NOTE:
 # An alternative model specification was also evaluated. In this version:
-# - income_sm replaced piped water and sewerage;
-# - dens_urban.l was included as an additional predictor;
+# - piped water and sewerage replaced income_sm;
+# - dens_urban.l was exclued;
 # - all remaining model components were unchanged.
+
+# M <- ~ -1 + Intercept(1) + myoffset(log(pop10), model = "offset") +
+#   sew(sewerage.fc, model ="factor_contrast") +  # Socioeconomic: sewerage
+#   pip(piped.fc, model ="factor_contrast") +     # Socioeconomic: piped water
+#   Tmin.grp(Tmin.grp, model= 'rw2') +            # Climate: min temperature (nonlinear)
+#   Prec +                                        # Climate: precipitation
+#   logKatz +                                     # Mobility: Katz index (Log)
+#   Forest +                                      # Environmental: forest cover
+#   Alt(ALT.fc, model = "factor_contrast") +      # Elevation factor
+#   Biome(BIO.fc, model ="factor_contrast") +     # Biome categorical factor
+#   field(list(
+#     space = cbind(xUTM, yUTM),               # Spatial coordinates
+#     time = ID.time.1),                       # Temporal index
+#     model = stmodel)                         # Spatiotemporal model defined earlier
 
 # ---- 6. Define Likelihood ---------------------------------------------------
 lhood <- like(
@@ -266,8 +304,8 @@ fit121 <- bru(
 #save(fit121, file = "data/Results_models_chik.Rdata")
 
 #To make it accessible on GitHub, the model was split and reduced into two files:
-load("data/fit121_reduced.RData")
-load("data/fit121_reduced_map.RData")
+load("data/fit121_reduced_income.RData")
+load("data/fit121_reduced_income_map.RData")
 
 fit121 <- fit121_reduced
 fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
@@ -294,14 +332,23 @@ round(cbind(fit121$summary.fixed[, c(1, 2, 3, 5)]), 3)
 # Fixed effects table 
 a <- data.frame(FixedEffects(fit121), fix.empty.names = FALSE)
 
-var <- data.frame(
-  ID = 1:4,
-  mean = a$mean,
-  X0.025quant = a$qt0.025,
-  X0.975quant = a$qt0.975,
-  type = c("-", "Climate", "Mobility", "Environmental"),
-  Covariates = c("Intercept", "Precipitation total (m)", "Katz index", "Forest")
-)  %>% rename("0.025quant" = X0.025quant, "0.975quant" = X0.975quant)
+var <- data.frame(ID = 1:6,
+                  mean = a$mean, 
+                  "0.025quant" = a$qt0.025, 
+                  "0.975quant" = a$qt0.975,
+                  type = c("-", "Socioeconomic", "Climate", "Mobility", "Demographic", "Environmental"),
+                  Covariates = c("Intercept", "Income", "Precipitation total (m)", "Katz index", "Pop. Urban density", "Forest")) %>%
+                  rename("0.025quant" = X0.025quant, "0.975quant" = X0.975quant)
+
+# NOTE: # alternative model specification:
+# var <- data.frame(
+#   ID = 1:4,
+#   mean = a$mean,
+#   X0.025quant = a$qt0.025,
+#   X0.975quant = a$qt0.975,
+#   type = c("-", "Climate", "Mobility", "Environmental"),
+#   Covariates = c("Intercept", "Precipitation total (m)", "Katz index", "Forest")
+# )  %>% rename("0.025quant" = X0.025quant, "0.975quant" = X0.975quant)
 
 
 # Elevation 
@@ -316,22 +363,23 @@ Elevation <- rbind(linha, Elevation)
 Elevation$type <- c("Ref.", "Elevation", "Elevation", "Elevation")
 Elevation$Covariates <- c("900-1601 (Ref.)", "600-899 (m)", "250-599 (m)", "3-249 (m)")
 
+# NOTE: # alternative model specification:
 # Sewerage 
-sew <-  cbind(fit121$summary.random$sew$ID, 
-       round(exp(fit121$summary.random$sew [,c( "mean","0.025quant","0.975quant")]),2))
-sew <-rename (sew, 'ID' = `fit121$summary.random$sew$ID`   )
-sew <- rbind(linha, sew)
-
-sew$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
-sew$Covariates <- c ("sewerage <=0.3 (Ref.)","sewerage>0.3 & <=0.6", "sewerage >0.6")
-
-# Piped water 
-pip <- cbind(fit121$summary.random$pip$ID, 
-      round(exp(fit121$summary.random$pip [,c( "mean","0.025quant","0.975quant")]),2)) 
-pip <-rename (pip, 'ID' = `fit121$summary.random$pip$ID`   )
-pip <- rbind(linha, pip)
-pip$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
-pip$Covariates <- c ("piped <=0.3 (Ref.)","piped >0.3 & <=0.6", "piped >0.6")
+# sew <-  cbind(fit121$summary.random$sew$ID, 
+#        round(exp(fit121$summary.random$sew [,c( "mean","0.025quant","0.975quant")]),2))
+# sew <-rename (sew, 'ID' = `fit121$summary.random$sew$ID`   )
+# sew <- rbind(linha, sew)
+# 
+# sew$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
+# sew$Covariates <- c ("sewerage <=0.3 (Ref.)","sewerage>0.3 & <=0.6", "sewerage >0.6")
+# 
+# # Piped water 
+# pip <- cbind(fit121$summary.random$pip$ID, 
+#       round(exp(fit121$summary.random$pip [,c( "mean","0.025quant","0.975quant")]),2)) 
+# pip <-rename (pip, 'ID' = `fit121$summary.random$pip$ID`   )
+# pip <- rbind(linha, pip)
+# pip$type <- c("Ref.",'Socioeconomic', 'Socioeconomic') 
+# pip$Covariates <- c ("piped <=0.3 (Ref.)","piped >0.3 & <=0.6", "piped >0.6")
 
 # Biome 
 Biome <-  cbind(fit121$summary.random$Biome$ID, 
@@ -343,23 +391,31 @@ Biome$type <- c("Ref.",'Biome', 'Biome','Biome', 'Biome','Biome')
 Biome$Covariates <- c ("Mata Atlantica (Ref.)","Pantanal", "Pampa", "Amazonia", "Cerrado", "Caatinga")
 
 # Combine all tables 
-tab <- rbind(pip, sew, Elevation, Biome, var)
+#tab <- rbind(pip, sew, Elevation, Biome, var)
+tab <- rbind(Elevation, Biome, var)
 tab <-rename (tab, ll = '0.025quant'  )
 tab <-rename (tab, ul = '0.975quant'  )
 
-tab$type <- factor(tab$type, 
-         levels = c("-", "Socioeconomic", "Mobility", "Environmental", "Climate", "Elevation", "Biome", "Ref."))
+tab$type <- factor(tab$type,
+         levels = c("-", "Socioeconomic", "Mobility", "Demographic", "Environmental", "Climate", "Elevation", "Biome", "Ref."))
 tab <- tab %>% arrange(type)
+
+# NOTE: # alternative model specification:
+# tab$type <- factor(tab$type, 
+#          levels = c("-", "Socioeconomic", "Mobility", "Environmental", "Climate", "Elevation", "Biome", "Ref."))
+# tab <- tab %>% arrange(type)
 
 tab$Covariates <- factor(tab$Covariates, levels = rev(c(
   "Intercept",
-  "sewerage <=0.3 (Ref.)",
-  "sewerage>0.3 & <=0.6",
-  "sewerage >0.6",
-  "piped <=0.3 (Ref.)",
-  "piped >0.3 & <=0.6",
-  "piped >0.6",
+  "Income",
+  # "sewerage <=0.3 (Ref.)",
+  # "sewerage>0.3 & <=0.6",
+  # "sewerage >0.6",
+  # "piped <=0.3 (Ref.)",
+  # "piped >0.3 & <=0.6",
+  # "piped >0.6",
   "Katz index",
+  "Pop. Urban density",
   "Forest",
   "Precipitation total (m)",
   "900-1601 (Ref.)",
@@ -379,27 +435,33 @@ tab <- tab %>% filter(Covariates != "Intercept")
 # ---- 11. Plot IRR with 95% CI ---------------------------------------------
 
 Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)) +
-  geom_point(size = 3) +  
-  geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  
-  geom_vline(xintercept = 1, linetype = "dashed", color = "gray") +  
+  geom_point(size = 3) +  # Define tamanho dos pontos
+  geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  # Barras de erro horizontais
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray") +  # Linha de referência
   labs(
     x = "IRR (95% CI)",
-    y = "Covariates") +
-  scale_color_manual( "", 
-    values = c( "orange", "black","green3","blue","red", "brown",  "grey")  
+    y = "Covariates"
+  ) +
+  scale_color_manual(
+    "", ## tirar o titulo da legenda
+    values = c( "orange", "black",  "#B07AA1" ,"green3","blue","red", "brown",  "grey")  # Definir as cores manualmente
       ) +
-  scale_shape_manual( "",
-    values = c(16,16,16, 16, 16,16,17)) +
+  scale_shape_manual(
+    "",
+    values = c(16,16,16, 16, 16,16,16, 17)  # Define os shapes (formas) manualmente
+    #guide = "none"               # Remove a legenda de shape
+  ) +
   theme_minimal() +
   theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(),  
-    axis.line.x = element_line(color = "black"),  
-    axis.line.y = element_line(color = "black"),  
+    panel.grid.major = element_blank(),  # Remove linhas de grade principais
+    panel.grid.minor = element_blank(),  # Remove linhas de grade secundárias
+    axis.line.x = element_line(color = "black"),  # Adiciona linha no eixo X
+    axis.line.y = element_line(color = "black"),  # Adiciona linha no eixo Y
     axis.text.y = element_text(size = 8, color = "black"),
-    legend.position =  'bottom', 
-    legend.box = "horizontal",        
-    legend.spacing.y = unit(0.0, "cm"), 
+    legend.position =  'bottom', #c(-0.65, 0.1),
+    #legend.box.background = element_rect(color="black", size=0.2),
+    legend.box = "horizontal",        # Força a legenda a ficar em linha única
+    legend.spacing.y = unit(0.0, "cm"), # Ajusta o espaçamento horizontal entre os itens da legenda
     legend.spacing.x = unit(0.5, "cm"),
     legend.title = element_blank(),
     legend.text = element_text(size = 10),
@@ -411,36 +473,91 @@ Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)
     shape = guide_legend(nrow = 1)
   )
 
+# NOTE: # alternative model specification:
+# Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)) +
+#   geom_point(size = 3) +  
+#   geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  
+#   geom_vline(xintercept = 1, linetype = "dashed", color = "gray") +  
+#   labs(
+#     x = "IRR (95% CI)",
+#     y = "Covariates") +
+#   scale_color_manual( "", 
+#     values = c( "orange", "black","green3","blue","red", "brown",  "grey")  
+#       ) +
+#   scale_shape_manual( "",
+#     values = c(16,16,16, 16, 16,16,17)) +
+#   theme_minimal() +
+#   theme(
+#     panel.grid.major = element_blank(),  
+#     panel.grid.minor = element_blank(),  
+#     axis.line.x = element_line(color = "black"),  
+#     axis.line.y = element_line(color = "black"),  
+#     axis.text.y = element_text(size = 8, color = "black"),
+#     legend.position =  'bottom', 
+#     legend.box = "horizontal",        
+#     legend.spacing.y = unit(0.0, "cm"), 
+#     legend.spacing.x = unit(0.5, "cm"),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 10),
+#     legend.key.width = unit(0.5, "cm"),
+#     legend.margin = margin(0, 0, 0, 0)
+# ) +
+#   guides(
+#     color = guide_legend(nrow = 1),
+#     shape = guide_legend(nrow = 1)
+#   )
+
 # Extract legend separately 
 legend = cowplot::get_plot_component(Figplot, 'guide-box-bottom', return_all = TRUE)
 cowplot::ggdraw(legend)
 
 # Plot without legend 
 Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)) +
-  geom_point(size = 3) +  # Define point size
-  geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  # Horizontal error bars
-  geom_vline(xintercept = 1, linetype = "dashed", color = "gray") +  # Reference line at RR = 1
+  geom_point(size = 3) +  
+  geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray") + 
   labs(
     x = "RR (95% CI)",
     y = "Covariates"
   ) +
-  scale_color_manual(
-    "",  # Remove legend title
-    values = c("orange", "black", "green3", "blue", "red", "brown", "grey")  # Manual colors
-  ) +
-  scale_shape_manual(
-    "",
-    values = c(16, 16, 16, 16, 16, 16, 17)  # Manual shapes
-  ) +
+  scale_color_manual(  "",   values = c( "orange", "black", "#B07AA1" ,"green3","blue","red", "brown",  "grey") )+
+  scale_shape_manual(  "",
+    values = c(16,16,16, 16, 16, 16,16,17)) + scale_x_continuous(limits = c(0, 2.2)) +
   theme_minimal() +
   theme(
-    panel.grid.major = element_blank(),  # Remove major grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    axis.line.x = element_line(color = "black"),  # X-axis line
-    axis.line.y = element_line(color = "black"),  # Y-axis line
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),  
+    axis.line.x = element_line(color = "black"),  
+    axis.line.y = element_line(color = "black"),  
     axis.text.y = element_text(size = 8, color = "black"),
-    legend.position = ""  # Remove legend
-  )
+    legend.position =  ""  ) 
+
+# NOTE: # alternative model specification:
+# Figplot <- ggplot(tab, aes(x = mean, y = Covariates, color = type, shape = type)) +
+#   geom_point(size = 3) +  # Define point size
+#   geom_errorbarh(aes(xmin = ll, xmax = ul), height = 0.2) +  # Horizontal error bars
+#   geom_vline(xintercept = 1, linetype = "dashed", color = "gray") +  # Reference line at RR = 1
+#   labs(
+#     x = "RR (95% CI)",
+#     y = "Covariates"
+#   ) +
+#   scale_color_manual(
+#     "",  # Remove legend title
+#     values = c("orange", "black", "green3", "blue", "red", "brown", "grey")  # Manual colors
+#   ) +
+#   scale_shape_manual(
+#     "",
+#     values = c(16, 16, 16, 16, 16, 16, 17)  # Manual shapes
+#   ) +
+#   theme_minimal() +
+#   theme(
+#     panel.grid.major = element_blank(),  # Remove major grid lines
+#     panel.grid.minor = element_blank(),  # Remove minor grid lines
+#     axis.line.x = element_line(color = "black"),  # X-axis line
+#     axis.line.y = element_line(color = "black"),  # Y-axis line
+#     axis.text.y = element_text(size = 8, color = "black"),
+#     legend.position = ""  # Remove legend
+#   )
 
 # ---- 12. Plot Tmin effect ------------------------------------------------------
 data <- fit121$summary.random$Tmin.grp[,c( "ID", "mean","0.025quant","0.975quant")]
@@ -480,15 +597,15 @@ layout(mat = layout.matrix,
        heights = c(4, 1), # Heights of the two rows
        widths = c(1.5, 2)) # Widths of the two columns
 
+
 # Add label "A" to Figplot
 Figplot2 <- Figplot +
-  annotate("text", x = 1.8, y = 18.5, label = "A", 
-           hjust = 0, vjust = 0, size = 6, fontface = "bold", color = "black")
-# Add label "B" to FigTmin
+  annotate("text", x = 1.9, y = 15.1, label = "A", 
+           hjust = -0.4, vjust = 0.3, size = 6, fontface = "bold", color = "black")
+# Adicionar "B" dentro do gráfico FigTmin
 FigTmin2 <- FigTmin +
   annotate("text", x = max(data$ID), y = max(exp(data$mean)), label = "B", 
            hjust = 1, vjust = -1.3, size = 6, fontface = "bold", color = "black")
-# Arrange plots and legend using gridExtra
 layout <-grid.arrange(
   Figplot2, FigTmin2, legend,
   widths = c(1.5, 2), heights = c(13, 1),
@@ -497,7 +614,24 @@ layout <-grid.arrange(
 )
 
 # Save combined figure as PNG
-ggsave("Fig5_grafico_RR_CI.png",  layout, width = 19, height = 11,  unit="cm", dpi = 1000)
+ggsave("Fig5_grafico_RR_CI_income.png",  layout, width = 19, height = 11,  unit="cm", dpi = 1000)
+
+# NOTE: # alternative model specification:
+# Figplot2 <- Figplot +
+#   annotate("text", x = 1.8, y = 18.5, label = "A", 
+#            hjust = 0, vjust = 0, size = 6, fontface = "bold", color = "black")
+# # Add label "B" to FigTmin
+# FigTmin2 <- FigTmin +
+#   annotate("text", x = max(data$ID), y = max(exp(data$mean)), label = "B", 
+#            hjust = 1, vjust = -1.3, size = 6, fontface = "bold", color = "black")
+# # Arrange plots and legend using gridExtra
+# layout <-grid.arrange(
+#   Figplot2, FigTmin2, legend,
+#   widths = c(1.5, 2), heights = c(13, 1),
+#   layout_matrix = rbind(c(1, 2),
+#                         c(3, 3))
+# )
+#ggsave("FigS14grafico_RR_CI_sew.png",  layout, width = 19, height = 11,  unit="cm", dpi = 1000)
 
 # ---- 13. Prepare dataset for mapping ------------------------------
 rnams <- c( paste0(
@@ -523,16 +657,13 @@ dataf$pred_ul = fit121$summary.fitted.values[1:ndata, "0.975quant"] / dataf$pop1
 reg <- read_region(year = 2020,showProgress = FALSE)
 
 # Convert multipolygons to individual polygons
-reg_single <- reg %>%
+reg_main <- reg %>%
+  st_union(by_feature = TRUE) %>%
   st_cast("POLYGON") %>%
-  mutate(area = st_area(st_geometry(.)))
-
-# Keep only the largest polygon for each region
-reg_main <- reg_single %>%
-  group_by(code_region) %>%   # change 'code_region' to 'code_muni' if working with municipalities
-  slice_max(order_by = area, n = 1) %>%
-  ungroup() %>%
-  select(-area)
+  mutate(area = as.numeric(st_area(.))) %>%
+  group_by(code_region) %>%
+  slice_max(area) %>%
+  ungroup()
 
 # ---- 15. Map: Posterior Mean of Predicted Cases ---------------------------------
 dw <-dataf %>% select (id_key_time, ID_MN_RESI, pred_mean) %>% 
@@ -542,7 +673,8 @@ dw <-dataf %>% select (id_key_time, ID_MN_RESI, pred_mean) %>%
 map <- merge(MN_shp[,c("COD_MUN6", "name_muni", "abbrev_state", "name_region")], dw, by.x = "COD_MUN6", by.y = "ID_MN_RESI")
 map_sf <- st_as_sf(map)
 
-map_sf <- gather(map_sf, id_key_time, pred_mean, paste0("pred_mean.", 1:4, "_", rep(2015:2024, each = 4)))
+map_sf <- map_sf %>%  pivot_longer(cols = starts_with("pred_mean."),   names_to = "id_key_time",   values_to = "pred_mean" )
+
 map_sf$id <- gsub("pred_mean.", "", map_sf$id_key_time) 
 map_sf <- map_sf  %>% separate(id , c("season", "year"), sep="_")
 
@@ -623,7 +755,7 @@ ggp <- ggplot() +
            facet.lev = c("Spring 2024"))
 
 # Save map as JPEG 
-jpeg("FigS5_map_pred_mean_all.jpeg", width = 17, height = 10, 
+jpeg("FigS11_map_pred_mean_all_income.jpg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
     )
 ggp 
@@ -638,7 +770,7 @@ dw_ll <-dataf %>% select (id_key_time, ID_MN_RESI, pred_ll) %>%
 map <- merge(MN_shp[,c("COD_MUN6", "name_muni", "abbrev_state", "name_region")], dw_ll, by.x = "COD_MUN6", by.y = "ID_MN_RESI")
 map_sf <- st_as_sf(map)
 
-map_sf <- gather(map_sf, id_key_time, pred_ll, paste0("pred_ll.", 1:4, "_", rep(2015:2024, each = 4)))
+map_sf <- map_sf %>%  pivot_longer(cols = starts_with("pred_ll."),   names_to = "id_key_time",   values_to = "pred_ll" )
 map_sf$id <- gsub("pred_ll.", "", map_sf$id_key_time) 
 map_sf <- map_sf  %>% separate(id , c("season", "year"), sep="_")
 
@@ -710,7 +842,7 @@ ggp <- ggplot() +
            facet.var = c("id"),  
            facet.lev = c("Spring 2024"))
 
-jpeg("FigS6_map_pred_ll.jpeg", width = 17, height = 10, 
+jpeg("FigS12_map_pred_ll_income.jpg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
 )
 ggp 
@@ -725,7 +857,8 @@ dw_ul <-dataf %>% select (id_key_time, ID_MN_RESI, pred_ul) %>%
 map <- merge(MN_shp[,c("COD_MUN6", "name_muni", "abbrev_state", "name_region")], dw_ul, by.x = "COD_MUN6", by.y = "ID_MN_RESI")
 map_sf <- st_as_sf(map)
 
-map_sf <- gather(map_sf, id_key_time, pred_ul, paste0("pred_ul.", 1:4, "_", rep(2015:2024, each = 4)))
+map_sf <- map_sf %>%  pivot_longer(cols = starts_with("pred_ul."),   names_to = "id_key_time",   values_to = "pred_ul" )
+
 map_sf$id <- gsub("pred_ul.", "", map_sf$id_key_time) 
 map_sf <- map_sf  %>% separate(id , c("season", "year"), sep="_")
 
@@ -800,7 +933,7 @@ ggp <- ggplot() +
            facet.lev = c("Spring 2024"))
 
 
-jpeg("FigS7_map_pred_ul.jpeg", width = 17, height = 10, 
+jpeg("FigS13_map_pred_ul_income.jpg", width = 17, height = 10, 
      units = "cm", res = 2000, type = "cairo"
 )
 ggp 
@@ -815,11 +948,13 @@ amostras_blocos <- generate(
   newdata = dataf,
   formula = ~ list(
     # Socioeconomic component
-    socioecon = pip + sew,
+    socioecon = income_sm, 
+    #socioecon = pip + sew,
 
-    # Mobility component
+    # urban component
     mobility = logKatz,
-
+    demografic = dens_urban.l,
+    
     # Environmental component
     environmental = Forest,
 
@@ -842,18 +977,17 @@ amostras_blocos <- generate(
 )
 
 save(amostras_blocos,
-     file = "data/amostras1_chik_original.Rdata")
+     file = "data/amostras_chik_income_dens_urb1.Rdata")
 # Repeat the same procedure for batches 2 and 3
 
-# ---- 18.2 Combine posterior samples ----------------------------------------------
 
-load("data/amostras1_chik_original.Rdata")
+load("data/amostras_chik_income_dens_urb1.Rdata")
 amostras_blocos1 <- amostras_blocos
 
-load("data/amostras2_chik_original.Rdata")
+load("data/amostras_chik_income_dens_urb2.Rdata")
 amostras_blocos2 <- amostras_blocos
 
-load("data/amostras3_chik_original.Rdata")
+load("data/amostras_chik_income_dens_urb3.Rdata")
 amostras_blocos3 <- amostras_blocos
 
 amostras_blocos <- c(
@@ -862,7 +996,7 @@ amostras_blocos <- c(
   amostras_blocos3
 )
 
-# ---- 18.3 Compute posterior variance partition ----------------------------------
+# ---- 18.2 Compute posterior variance partition ----------------------------------
 
 n_samples <- length(amostras_blocos)
 
@@ -870,6 +1004,7 @@ df_variancias <- data.frame(
   Socioeconomic  = numeric(n_samples),
   Mobility       = numeric(n_samples),
   Environmental  = numeric(n_samples),
+  demografic      = numeric(n_samples),
   Climate        = numeric(n_samples),
   Spatiotemporal = numeric(n_samples)
 )
@@ -885,6 +1020,7 @@ for (i in seq_len(n_samples)) {
   ## Variance of each component
   v_soc <- var(amostras_blocos[[i]]$socioecon)
   v_mob <- var(amostras_blocos[[i]]$mobility)
+  v_dem <- var(amostras_blocos[[i]]$demografic)
   v_cli <- var(amostras_blocos[[i]]$climate)
   v_env <- var(environmental)
   v_st  <- var(amostras_blocos[[i]]$espaciotemporal)
@@ -894,6 +1030,7 @@ for (i in seq_len(n_samples)) {
     amostras_blocos[[i]]$intercepto +
     amostras_blocos[[i]]$socioecon +
     amostras_blocos[[i]]$mobility +
+    amostras_blocos[[i]]$demografic +
     amostras_blocos[[i]]$environmental +
     amostras_blocos[[i]]$climate +
     amostras_blocos[[i]]$elevation +
@@ -908,11 +1045,11 @@ for (i in seq_len(n_samples)) {
   df_variancias$Environmental[i]  <- 100 * v_env / v_total
   df_variancias$Climate[i]        <- 100 * v_cli / v_total
   df_variancias$Spatiotemporal[i] <- 100 * v_st  / v_total
+  df_variancias$demografic[i]     <- 100 * v_dem / v_total
 }
 
 head(df_variancias)
 
-# ---- 18.4 Summary table ----------------------------------------------------------
 
 tab <- df_variancias %>%
   pivot_longer(
@@ -932,7 +1069,7 @@ tab <- df_variancias %>%
 
 print(tab)
 
-# ---- 18.5 Data for plotting ------------------------------------------------------
+# ---- 18.3 Data for plotting ------------------------------------------------------
 
 df_resumo <- df_variancias %>%
   pivot_longer(
@@ -948,19 +1085,19 @@ df_resumo <- df_variancias %>%
     .groups = "drop"
   )
 
-# ---- 18.6 Define color palette ---------------------------------------------------
 
 cores_manuais <- c(
-  Socioeconomic  = "orange",
-  Mobility       = "black",
-  Environmental  = "green3",
-  Climate        = "blue",
-  Elevation      = "red",
-  Biome          = "brown",
-  Spatiotemporal = "grey"
+  "Socioeconomic"   = "orange",
+  "Mobility"        = "black",
+  "demografic"        = "purple",
+  "Environmental"   = "green3",
+  "Climate"         = "blue",
+  "Elevation"       = "red",
+  "Biome"           = "brown",
+  "Spatiotemporal"  = "grey"
 )
 
-# ---- 18.7 Plot posterior variance partition --------------------------------------
+# ---- 18.4 Plot posterior variance partition --------------------------------------
 
 grafico_final <-
   ggplot(
@@ -1024,10 +1161,9 @@ grafico_final <-
 
 print(grafico_final)
 
-# ---- 18.8 Export figures ---------------------------------------------------------
 
 ggsave(
-  "Result/Fig7_Variance_Part_original.jpg",
+  "Result/Fig7_Variance_Part_income.jpg",
   grafico_final,
   width = 7,
   height = 4.5,
