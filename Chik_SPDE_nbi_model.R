@@ -305,10 +305,18 @@ fit121 <- bru(
 #save(fit121, file = "data/Results_models_chik.Rdata")
 
 #To make it accessible on GitHub, the model was split and reduced into two files:
-load("data/fit121_reduced_income.RData")
+load("data/fit121_reduced_income_dens_urb1.RData")
+load("data/fit121_reduced_income_dens_urb2.RData")
+load("data/fit121_reduced_income_dens_urb3.RData")
 load("data/fit121_reduced_income_map.RData")
 
-fit121 <- fit121_reduced
+fit121_reduced_bru_final <- list(
+  bru_info = c(fit121_reduced_bru$bru_info,
+    fit121_reduced_bru2$bru_info))
+
+fit121 <- c(fit121_reduced, fit121_reduced_bru_final)
+class(fit121) <- c("bru", "inla")
+
 fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
 
 # ---- 9. Summarize Model Results --------------------------------------------
