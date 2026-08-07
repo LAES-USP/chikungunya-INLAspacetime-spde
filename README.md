@@ -1,6 +1,6 @@
 This repository contains the Supplementary materials associated with the article:
 
-**"Spatiotemporal modeling of chikungunya in Brazil through interplay of climate with mobility and socioeconomic factors"**  
+**"Spatiotemporal modeling of chikungunya in Brazil through the interplay of climate, mobility, and socioeconomic factors"**  
 **Authors:** Raquel Gardini Sanches Palasio, Patricia Marques Moralejo Bermudi, Gerson Laurindo Barbosa, Pedro Silva Peixoto, Sergio Muniz Oliva, Camila Lorenz, Marta Blangiardo, Monica Pirani, and Francisco Chiaravalloti-Neto.
 
 Includes SPDE-based INLA modeling, visualization scripts, and mapping outputs.
@@ -128,12 +128,12 @@ Chik_SPDE_nbi_model.R
 How to run the demo
 ### Load model output (reduced size)
 ```R
-load("fit121_reduced.RData")       # contains fixed effects, hyperparameters, WAIC, DIC, CPO
-load("fit121_reduced_map.RData")   # contains subset of fitted values for mapping
+load("fit121_reduced_income.RData")       # contains fixed effects, hyperparameters, WAIC, DIC, CPO
+load("fit121_reduced_income_map.RData")   # contains subset of fitted values for mapping
 ```
 ### Load input data
 ```R
-load("data/dataf.RData")
+data <- read_excel("data/Supplementary data.xlsx", sheet = "data")
 ```
 ### Expected Output
 
@@ -203,12 +203,14 @@ fit <- bru(M,
            lhood,
             options = list(control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE)))
 ```
-## (Optional) Reproduction Instructions
+## Reproduction Instructions
 
 The repository includes:
 
-   - Reduced model objects (fit121_reduced)
-   - Subset of fitted values for mapping (fit121_reduced_map)
+   - Reduced model object (`fit121_reduced_income.RData`)
+   - Subset of fitted values for mapping (`fit121_reduced_income_map.RData`)
+   - Alternative reduced model object (fit121_reduced_sew_piped.RData)
+   - Subset of fitted values for mapping from the alternative model (`fit121_reduced_map_sew_piped.RData`)
    - Full plotting and mapping scripts
    - Posterior sample batches (amostras_blocos) used for posterior variance partitioning.
      
@@ -224,7 +226,7 @@ without refitting the full model.
 ## Citation
 If you use or adapt this code, please cite the original article:
 Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lorenz, C., Blangiardo, M., Pirani, M., & Chiaravalloti-Neto, F.
-Spatiotemporal modeling of chikungunya in Brazil through interplay of climate with mobility and socioeconomic factors.
+Spatiotemporal modeling of chikungunya in Brazil through the interplay of climate, mobility, and socioeconomic factors.
 [Journal name, 2026, DOI – to be added upon publication]
 
 Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). Code for article ”Spatio-temporal Modeling of chikungunya in Brazil though interplay of climate
