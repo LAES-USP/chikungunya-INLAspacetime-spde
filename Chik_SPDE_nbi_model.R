@@ -28,6 +28,7 @@ library(ggsn)            # extra map tools
 # Download from Figshare
 library(httr)
 library(jsonlite)
+library(readxl)
 
 # ---- 2. Load and Prepare Data ------------------------------------------------
 
