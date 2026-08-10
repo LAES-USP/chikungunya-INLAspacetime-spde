@@ -134,9 +134,9 @@ Chik_SPDE_nbi_model.R
 How to run the demo
 ### Load model output (reduced size)
 ```R
-load("fit121_reduced_income_bru1.RData")       # contains: fixed effects, random effects, hyperparameters, WAIC, DIC, CPO, marginals.fixed, and model summary outputs
-load("fit121_reduced_income_bru2.RData")       # contains: bru_info structure (method, model, options, inlabru version, and INLA version)
-load("fit121_reduced_income_bru3.RData")       # contains: bru_info$lhoods (likelihood information)
+load("fit121_reduced_income_dens_urb1.RData")       # contains: fixed effects, random effects, hyperparameters, WAIC, DIC, CPO, marginals.fixed, and model summary outputs
+load("fit121_reduced_income_dens_urb2.RData")       # contains: bru_info structure (method, model, options, inlabru version, and INLA version)
+load("fit121_reduced_income_dens_urb3.RData")       # contains: bru_info$lhoods (likelihood information)
 load("fit121_reduced_income_map.RData")        # contains: subset of fitted values for mapping
 ```
 ### Load input data
@@ -181,14 +181,12 @@ mesh <- inla.mesh.2d(loc = cbind(coords.cv[, 1], coords.cv[, 2]),
 ```
 Step 3 — Define Model Components
 ```R
-
-M <- ~ -1 + Intercept(1) +
-  myoffset(log(pop10), model = "offset") +
-  sew(sewerage.fc, model ="factor_contrast") +  # Socioeconomic: sewerage
-  pip(piped.fc, model ="factor_contrast") +     # Socioeconomic: piped water
+M <- ~ -1 + Intercept(1) + myoffset(log(pop10), model = "offset") +
+  income_sm +                                   # Socioeconomic: income
   Tmin.grp(Tmin.grp, model= 'rw2') +            # Climate: min temperature (nonlinear)
   Prec +                                        # Climate: precipitation
   logKatz +                                     # Mobility: Katz index (Log)
+  dens_urban.l +                                # Demographic: Urban population  density (log)
   Forest +                                      # Environmental: forest cover
   Alt(ALT.fc, model = "factor_contrast") +      # Elevation factor
   Biome(BIO.fc, model ="factor_contrast") +     # Biome categorical factor
@@ -196,6 +194,14 @@ M <- ~ -1 + Intercept(1) +
     space = cbind(xUTM, yUTM),               # Spatial coordinates
     time = ID.time.1),                       # Temporal index
     model = stmodel)                         # Spatiotemporal model defined earlier
+
+# NOTE:
+# An alternative model specification was also evaluated. In this version:
+# - piped water and sewerage replaced income_sm;
+# - dens_urban.l was exclued;
+# - all remaining model components were unchanged.
+#  sew(sewerage.fc, model ="factor_contrast") +  # Socioeconomic: sewerage
+#  pip(piped.fc, model ="factor_contrast") +     # Socioeconomic: piped water
 ```
 Step 4 — Fit Model (optional, advanced)
 Only recommended for users with high-performance hardware.
@@ -215,7 +221,7 @@ fit <- bru(M,
 
 The repository includes:
 
-   - Reduced model object (`fit121_reduced_income_bru [1-3].RData`)
+   - Reduced model object (`fit121_reduced_income_dens_urb [1-3].RData`)
    - Subset of fitted values for mapping (`fit121_reduced_income_map.RData`)
    - Alternative reduced model object (fit121_reduced_sew_piped.RData)
    - Subset of fitted values for mapping from the alternative model (`fit121_reduced_map_sew_piped.RData`)
