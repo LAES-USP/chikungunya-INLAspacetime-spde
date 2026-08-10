@@ -304,7 +304,7 @@ fit121 <- bru(
 #Full model (not uploaded due to file size)
 #save(fit121, file = "data/Results_models_chik.Rdata")
 
-#To make it accessible on GitHub, the model was split and reduced into two files:
+#To make it accessible on GitHub, the model was split and reduced into files:
 load("data/fit121_reduced_income_dens_urb1.RData")
 load("data/fit121_reduced_income_dens_urb2.RData")
 load("data/fit121_reduced_income_dens_urb3.RData")
@@ -318,6 +318,12 @@ fit121 <- c(fit121_reduced, fit121_reduced_bru_final)
 class(fit121) <- c("bru", "inla")
 
 fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
+
+# load("data/fit121_reduced_sew_piped.RData")
+# load("data/fit121_reduced_map_sew_piped.RData")
+# 
+# fit121 <- fit121_reduced
+# fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
 
 # ---- 9. Summarize Model Results --------------------------------------------
 # Summary of posterior marginal distributions for the fixed effects
