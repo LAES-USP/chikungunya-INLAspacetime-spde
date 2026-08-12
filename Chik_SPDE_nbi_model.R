@@ -317,13 +317,11 @@ fit121_reduced_bru_final <- list(
 fit121 <- c(fit121_reduced, fit121_reduced_bru_final)
 class(fit121) <- c("bru", "inla")
 
-fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
-
 # load("data/fit121_reduced_sew_piped.RData")
 # load("data/fit121_reduced_map_sew_piped.RData")
-# 
 # fit121 <- fit121_reduced
-# fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
+
+fit121$summary.fitted.values <- fit121_reduced2$summary.fitted.values
 
 # ---- 9. Summarize Model Results --------------------------------------------
 # Summary of posterior marginal distributions for the fixed effects
@@ -1019,7 +1017,7 @@ df_variancias <- data.frame(
   Socioeconomic  = numeric(n_samples),
   Mobility       = numeric(n_samples),
   Environmental  = numeric(n_samples),
-  demografic      = numeric(n_samples),
+  demographic      = numeric(n_samples),
   Climate        = numeric(n_samples),
   Spatiotemporal = numeric(n_samples)
 )
@@ -1060,7 +1058,7 @@ for (i in seq_len(n_samples)) {
   df_variancias$Environmental[i]  <- 100 * v_env / v_total
   df_variancias$Climate[i]        <- 100 * v_cli / v_total
   df_variancias$Spatiotemporal[i] <- 100 * v_st  / v_total
-  df_variancias$demografic[i]     <- 100 * v_dem / v_total
+  df_variancias$demographic[i]     <- 100 * v_dem / v_total
 }
 
 head(df_variancias)
@@ -1104,7 +1102,7 @@ df_resumo <- df_variancias %>%
 cores_manuais <- c(
   "Socioeconomic"   = "orange",
   "Mobility"        = "black",
-  "demografic"        = "purple",
+  "demographic"        = "purple",
   "Environmental"   = "green3",
   "Climate"         = "blue",
   "Elevation"       = "red",
