@@ -241,7 +241,7 @@ without refitting the full model.
 If you use or adapt this code, please cite the original article:
 Palasio, R.G.S., Bermudi, P.M.M., Barbosa, G.L., Peixoto, P.S., Oliva, S.M., Lorenz, C., Blangiardo, M., Pirani, M., & Chiaravalloti-Neto, F.
 Spatiotemporal modeling of chikungunya in Brazil through the interplay of climate, mobility, and socioeconomic factors.
-[2026]
+[Communications Health, 2026, DOI – to be added upon publication]
 
 Palasio, R., Patricia, B., Pirani, M., & Chiaravalloti-Neto, F. (2025). Code for article ”Spatio-temporal Modeling of chikungunya in Brazil though interplay of climate
 with mobility and Socioeconomic Factors”. Zenodo. https://doi.org/10.5281/zenodo.17604821
